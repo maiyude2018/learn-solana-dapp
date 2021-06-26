@@ -29,11 +29,11 @@ const Transfer = ({ keypair }) => {
 
   const transfer = (values) => {
     const amountNumber = parseFloat(values.amount);
-  
+
     if (isNaN(amountNumber)) {
       setError("Amount needs to be a valid number")
     }
-  
+
     const url = getNodeRpcURL();
     const connection = new Connection(url, { wsEndpoint: getNodeWsURL() });
 
@@ -57,8 +57,23 @@ const Transfer = ({ keypair }) => {
     setFetching(true);
 
     // Create a transaction
+    const transaction = new Transaction().add(instructions);
     // Add instructions
+    setTxSignature(null);
+    setFetching(true);
     // Call sendAndConfirmTransaction
+    sendAndConfirmTransaction(
+    connection,
+    transaction,
+    signers,
+  ).then((signature) => {
+    setTxSignature(signature)
+    setFetching(false);
+  })
+  .catch((err) => {
+    console.log(err);
+    setFetching(false);
+  })
     // On success, call setTxSignature and setFetching
   };
 
@@ -73,7 +88,7 @@ const Transfer = ({ keypair }) => {
       initialValues={{
         from: keypair.publicKey.toString()
       }}
-    > 
+    >
       <Form.Item label="Sender" name="from" required>
         <Text code>{keypair.publicKey.toString()}</Text>
       </Form.Item>
@@ -121,7 +136,7 @@ const Transfer = ({ keypair }) => {
           />
         </Form.Item>
       }
-      
+
       {error &&
         <Form.Item {...tailLayout}>
           <Alert
