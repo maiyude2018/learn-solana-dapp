@@ -1,60 +1,51 @@
-import React, { useState } from 'react';
-import { Alert, Col, Input, Button, Space, Typography } from 'antd';
-import { getAccountExplorerURL, getNodeRpcURL } from "../lib/utils";
-import { Connection, PublicKey } from "@solana/web3.js";
+import React from 'react';
+import { Alert, Button, Col, Space, Typography } from 'antd';
+import { Keypair } from "@solana/web3.js";
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
-const DECIMAL_OFFSET = 1000000000;
-
-const Balance = () => {
-  const [value, setValue] = useState("");
-  const [balance, setBalance] = useState(null);
-
-  const getBalance = () => {
-    const url = getNodeRpcURL();
-    const connection = new Connection(url);
-
-    // Create a PublicKey from the input value
-    const publicKey = new PublicKey(value);
-
-  connection.getBalance(publicKey)
-    .then((balance) => {
-      setBalance(balance / DECIMAL_OFFSET);
-    })
-    .catch((error) => {
-      console.log(error);
-      setBalance(null);
-    });
-    // Call getBalance
-    // Set balance using setBalance and DECIMAL_OFFSET
+const Account = ({ keypair, setKeypair }) => {
+  const generateKeypair = () => {
+    // Generate a Keypair
+    const keypair = Keypair.generate();
+    console.log(keypair);
+    setKeypair(keypair);
+    // Save it to <App />'s state
   }
 
-  const explorerUrl = getAccountExplorerURL(value);
+  // parse the address (as a string) from the keypair object
+  const publicKeyStr = keypair && keypair.publicKey.toString();
 
   return (
     <Col>
-      <Space direction="vertical" size="large">
-        <Space direction="vertical">
-          <Text>Paste the address you generated previously:</Text>
-          <Input placeholder="Enter an address" onChange={(e) => setValue(e.target.value) } style={{ width: "500px" }} />
-          <Button type="primary" onClick={getBalance}>Check Balance</Button>
-        </Space>
-        {balance &&
-          <Alert
-            message={
-              <Text strong>{`This address has a balance of ◎${balance}`}</Text>
-            }
-            description={
-              <a href={explorerUrl} target="_blank" rel="noreferrer">View the address on Solana Explorer</a>
-            }
-            type="success"
-            showIcon
-          />
-        }
-      </Space>
+      <Button type="primary" onClick={generateKeypair} style={{ marginBottom: "20px" }}>Generate a Keypair</Button>
+      {keypair &&
+        <Col>
+          <Space direction="vertical">
+            <Alert
+              message={
+                <Space>
+                  <Text strong>Keypair generated!</Text>
+                </Space>
+              }
+              description={
+                <div>
+                  <Text>Open the JS console to inspect the Keypair.</Text>
+                  <div>
+                    This is the string representation of the public key
+                    <Text code>{publicKeyStr}</Text>.
+                  </div>
+                  <Text>It's accessible (and copyable) at the top right of this page.</Text>
+                </div>
+              }
+              type="success"
+              showIcon
+            />
+          </Space>
+        </Col>
+      }
     </Col>
   );
 }
 
-export default Balance
+export default Account
