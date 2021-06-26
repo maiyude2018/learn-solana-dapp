@@ -36,8 +36,8 @@ const GREETING_SIZE = borsh.serialize(
   new GreetingAccount(),
 ).length;
 
-const PAYER_SECRET_KEY = null;
-const PROGRAM_SECRET_KEY = null;
+const PAYER_SECRET_KEY = "[117,186,229,119,1,19,78,232,50,174,191]";
+const PROGRAM_SECRET_KEY = "[5,156,2138,151,177,143,243]";
 
 const Program = () => {
   const [connection, setConnection] = useState(null);
@@ -66,14 +66,14 @@ const Program = () => {
     const programKeypair = Keypair.fromSecretKey(programSecretKey);
     const programId = programKeypair.publicKey;
     setProgramId(programId);
-  
+
     // // Check if the program has been deployed
     // await connection.getAccountInfo(programId);
     // console.log(`Using program ${programId.toBase58()}`);
 
     const payerSecretKey = new Uint8Array(PAYER_SECRET_KEY);
     const payerKeypair = Keypair.fromSecretKey(payerSecretKey);
-  
+
     // Derive the address of a greeting account from the program so that it's easy to find later.
     const GREETING_SEED = 'hello';
     const greetedPubkey = await PublicKey.createWithSeed(
@@ -82,13 +82,13 @@ const Program = () => {
       programId,
     );
     setGreeterPublicKey(greetedPubkey)
-  
+
     // Check if the greeting account has already been created
     const greetedAccount = await connection.getAccountInfo(greetedPubkey);
     if (greetedAccount === null) {
       console.log('Creating account', greetedPubkey.toBase58(), 'to say hello to');
       const lamports = await connection.getMinimumBalanceForRentExemption(GREETING_SIZE);
-  
+
       const transaction = new Transaction().add(
         SystemProgram.createAccountWithSeed({
           fromPubkey: payerKeypair.publicKey,
@@ -111,13 +111,34 @@ const Program = () => {
     // Load the payer's Keypair from the Uint8Array PAYER_SECRET_KEY
     // by using Keypair.fromsecretkey
     // https://solana-labs.github.io/solana-web3.js/classes/keypair.html#fromsecretkey
-  
+     const payerSecretKey = new Uint8Array(PAYER_SECRET_KEY);
+     const payerKeypair = Keypair.fromSecretKey(payerSecretKey);
+
     // Create the TransactionInstruction by passing keys, programId and data
     // For data you can pass Buffer.alloc(0) as all the program's instructions are the same
-  
+    const instruction = new TransactionInstruction({
+    keys: [{pubkey: greeterPublicKey, isSigner: false, isWritable: true}],
+    programId,
+    data: Buffer.alloc(0), // All instructions are hellos
+  });
+
     // Call sendAndConfirmTransaction
     // https://solana-labs.github.io/solana-web3.js/modules.html#sendandconfirmtransaction
     // On success, call getGreetings() to fetch the greetings counter
+    setGreetFetching(true);
+  sendAndConfirmTransaction(
+    connection,
+    new Transaction().add(instruction),
+    [payerKeypair],
+  ).then(res => {
+    console.log(`SUCCESS`, res);
+    setGreetTxSignature(res);
+    setGreetFetching(false);
+    getGreetings();
+  }).catch(err => {
+    console.log(`ERROR`, err);
+    setGreetFetching(false);
+  });
   }
 
   const getGreetings = async () => {
@@ -130,7 +151,7 @@ const Program = () => {
       GreetingAccount,
       accountInfo.data,
     );
-    
+
     setGreetingsCounter(greeting.counter);
   }
 
@@ -141,7 +162,7 @@ const Program = () => {
       </Space>
     )
   }
-  
+
   return (
     <Col>
       <Space direction="vertical" size="large">
